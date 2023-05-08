@@ -1,5 +1,11 @@
+// TODO
+// return languages correctly
+// accept a list of languages
+
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
+const source = require("./test_translations.json");
+const { encode, decode } = require("gpt-3-encoder");
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -26,6 +32,7 @@ async function translate(source) {
       messages: generatePrompt("japanese", source),
       temperature: 0.6,
     });
+    console.log(completion.data.choices[0]);
     return completion.data.choices[0].message.content;
   } catch (error) {
     if (error.response) {
@@ -47,11 +54,40 @@ const generatePrompt = (language, source) => {
   ];
 };
 
+const chunkSource = (source) => {
+  const tokensPerChunk = 1500;
+  const encoded = encode(JSON.stringify(source));
+  let chunks = [];
+  let currentChunk = "";
+  let currentChunkTokenCount = 0;
+
+  for (let token of encoded) {
+    currentChunk = currentChunk + decode([token]);
+    currentChunkTokenCount++;
+    if (currentChunkTokenCount === tokensPerChunk) {
+      chunks.push(currentChunk);
+      currentChunk = "";
+      currentChunkTokenCount = 0;
+    }
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+
+  return chunks;
+};
+
 module.exports = {
   translate: translate,
 };
 
 (async () => {
-  const result = await translate({ taco: "taco", bees: "bees" });
-  console.log(result);
+  // const result = await translate(source);
+  // console.log(result);
+  // const encoded = encode(JSON.stringify(source));
+  // for (let token of encoded) {
+  //   console.log({ token, string: decode([token]) });
+  // }
+  console.log(chunkSource(source));
 })();
