@@ -1,0 +1,26 @@
+{
+  "name": "translategpt",
+  "version": "1.0.0",
+  "description": "A tool to generate language translations using AI.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ariaBennett/translateGPT.git"
+  },
+  "keywords": [
+    "translations",
+    "translate",
+    "chatgpt",
+    "ai",
+    "i18n"
+  ],
+  "author": "Aria Bennett",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ariaBennett/translateGPT/issues"
+  },
+  "homepage": "https://github.com/ariaBennett/translateGPT#readme"
+}
