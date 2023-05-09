@@ -5,7 +5,7 @@
 
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
-const source = require("./test_translations.json");
+const input = require("./test_translations.json");
 const { encode, decode } = require("gpt-3-encoder");
 
 const configuration = new Configuration({
@@ -13,7 +13,7 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-async function translate(source) {
+async function translate(input) {
   if (!configuration.apiKey) {
     console.log(
       "OpenAI API key not configured, please follow instructions in README.md"
@@ -21,19 +21,21 @@ async function translate(source) {
     return;
   }
 
-  if (!source) {
-    console.log("Source translations not received.");
+  if (!input) {
+    console.log("Input translations not received.");
     return;
   }
 
-  const chunks = chunkSource(source);
-  console.log("chunks", chunks);
-  const result = [];
-  chunks.forEach((chunk) => {
-    result.push(queryTranslation(chunk));
-  });
+  const keys = Array.isArray(input) ? input : Object.keys(input);
 
-  return result;
+  const chunks = chunkKeys(keys);
+  // console.log("chunks", chunks);
+  const result = [];
+  // chunks.forEach((chunk) => {
+  //   result.push(queryTranslation(chunk));
+  // });
+  //
+  // return result;
 }
 
 const generatePrompt = (language, chunk) => {
@@ -49,7 +51,7 @@ const queryTranslation = async (chunk) => {
   try {
     const completion = await openai.createChatCompletion({
       model: "gpt-3.5-turbo-0301",
-      // prompt: generatePrompt("japanese", source),
+      // prompt: generatePrompt("japanese", input),
       messages: generatePrompt("japanese", chunk),
       temperature: 0.0,
     });
@@ -64,31 +66,33 @@ const queryTranslation = async (chunk) => {
   }
 };
 
-const chunkSource = (source) => {
+const getTokenCount = (str) => {
+  return encode(str).length;
+};
+
+const chunkKeys = (keys) => {
   const tokensPerChunk = 1000;
-  const encoded = encode(JSON.stringify(source));
   let chunks = [];
-  let currentChunk = `{"`;
+  let currentChunk = [];
   let currentChunkTokenCount = 0;
 
-  for (let token of encoded) {
-    const decodedToken = decode([token]);
-    console.log(decodedToken);
-    if (decodedToken !== `{"` && decodedToken !== `"}`) {
-      currentChunk = currentChunk + decodedToken;
-      currentChunkTokenCount++;
-    }
-    if (currentChunkTokenCount >= tokensPerChunk && decodedToken === `","`) {
-      currentChunk = currentChunk + `"}`;
+  for (let key of keys) {
+    currentChunkTokenCount += getTokenCount(key);
+
+    if (currentChunkTokenCount >= tokensPerChunk) {
       chunks.push(currentChunk);
-      currentChunk = `{"`;
+      currentChunk = [key];
       currentChunkTokenCount = 0;
+    }
+
+    if (currentChunkTokenCount < tokensPerChunk) {
+      currentChunk.push(key);
     }
   }
 
-  if (currentChunk) {
-    chunks.push(currentChunk + `"}`);
-  }
+  if (currentChunk) chunks.push(currentChunk);
+
+  console.log("chunkies", chunks);
 
   return chunks;
 };
@@ -98,11 +102,11 @@ module.exports = {
 };
 
 (async () => {
-  const result = await translate(source);
+  const result = await translate(input);
   // console.log(result);
-  // const encoded = encode(JSON.stringify(source));
+  // const encoded = encode(JSON.stringify(input));
   // for (let token of encoded) {
   //   console.log({ token, string: decode([token]) });
   // }
-  // console.log(chunkSource(source));
+  // console.log(chunkInput(input));
 })();
