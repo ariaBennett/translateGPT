@@ -145,7 +145,7 @@ async function translate(input) {
     console.log("Queries", queries);
 
     for (let query in queries) {
-      const queryResponse = await sendQuery(queries[query], "japanese"); // Todo pass language
+      const queryResponse = await sendQuery(queries[query], "uwu speak"); // Todo pass language
       console.log("Query response: ", queryResponse);
 
       buildingOutput = generateAppliedResponse(queryResponse, buildingOutput);
