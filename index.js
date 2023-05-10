@@ -6,7 +6,7 @@
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
 const input = require("./test_translations.json");
-const { encode, decode } = require("gpt-3-encoder");
+const { encode } = require("gpt-3-encoder");
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -31,18 +31,20 @@ async function translate(input) {
   const chunks = chunkKeys(keys);
   // console.log("chunks", chunks);
   const result = [];
-  // chunks.forEach((chunk) => {
-  //   result.push(queryTranslation(chunk));
-  // });
-  //
-  // return result;
+  for (const chunk of chunks) {
+    const translation = await queryTranslation(chunk);
+    result.push(translation);
+  }
+  return result;
 }
 
 const generatePrompt = (language, chunk) => {
   return [
     {
       role: "user",
-      content: `Please return this json object with the values translated into ${language}. ${chunk}`,
+      content: `Please return this array with the values translated into ${language}. ${JSON.stringify(
+        chunk
+      )}`,
     },
   ];
 };
@@ -92,7 +94,7 @@ const chunkKeys = (keys) => {
 
   if (currentChunk) chunks.push(currentChunk);
 
-  console.log("chunkies", chunks);
+  // console.log("chunkies", chunks);
 
   return chunks;
 };
@@ -103,6 +105,7 @@ module.exports = {
 
 (async () => {
   const result = await translate(input);
+  console.log("result", result);
   // console.log(result);
   // const encoded = encode(JSON.stringify(input));
   // for (let token of encoded) {
