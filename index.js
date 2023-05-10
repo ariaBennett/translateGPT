@@ -27,6 +27,18 @@ const isArray = function (a) {
 // While loop on object that builds queries out of blank values
 //   and token based splits them
 async function translate(input) {
+  if (!configuration.apiKey) {
+    console.log(
+      "OpenAI API key not configured, please follow instructions in README.md"
+    );
+    return;
+  }
+
+  if (!input) {
+    console.log("Input translations not received.");
+    return;
+  }
+
   // Turn source into JSON object with blank values
   const formatInput = (input) => {
     const formattedInput = {};
@@ -77,125 +89,84 @@ async function translate(input) {
     return queries;
   };
 
-  const formattedInput = formatInput(input);
-  console.log("builtQueries", buildQueries(formattedInput));
+  const generatePrompt = (query, language) => {
+    return [
+      {
+        role: "user",
+        content: `Please return this JSON object with the values translated into ${language}. ${query}`,
+      },
+    ];
+  };
+
+  const sendQuery = async (query, language) => {
+    try {
+      const completion = await openai.createChatCompletion({
+        model: "gpt-3.5-turbo-0301",
+        messages: generatePrompt(query, language),
+        temperature: 0.0,
+      });
+      console.log("Query response: ", completion.data.choices[0]);
+      return completion.data.choices[0].message.content;
+    } catch (error) {
+      if (error.response) {
+        console.error(error.response.status, error.response.data);
+      } else {
+        console.error(`Error with OpenAI API request: ${error.message}`);
+      }
+    }
+  };
+
+  const generateAppliedResponse = (response, buildingOutput) => {
+    let appliedResponse = buildingOutput;
+    let parsedResponse;
+
+    try {
+      parsedResponse = JSON.parse(response);
+      console.log("Parsed response: ", parsedResponse);
+    } catch {
+      console.log(`Response parse error, retrying. Response: ${response}`);
+      return buildingOutput;
+    }
+
+    Object.keys(parsedResponse).forEach((key) => {
+      if (appliedResponse[key] === "") {
+        appliedResponse[key] = parsedResponse[key];
+      }
+    });
+    return appliedResponse;
+  };
+
+  let buildingOutput = formatInput(input);
+  console.log("buildOut", buildingOutput);
+  let isOutputBuilt = false;
+
+  while (!isOutputBuilt) {
+    const queries = buildQueries(buildingOutput);
+    console.log("Queries", queries);
+
+    for (let query in queries) {
+      const queryResponse = await sendQuery(queries[query], "japanese"); // Todo pass language
+      console.log("Query response: ", queryResponse);
+
+      buildingOutput = generateAppliedResponse(queryResponse, buildingOutput);
+      console.log("Building output", buildingOutput);
+    }
+
+    if (queries === ["{}"]) {
+      isOutputBuilt = true;
+    }
+  }
+
+  console.log("build output", buildingOutput);
+  return buildingOutput;
 }
 // Try function on result from api to place the values into source json
 // once while loop completes, return filled JSON
 
 (async () => {
   const result = await translate(input);
-  // console.log("result", result);
-  // console.log(result);
-  // const encoded = encode(JSON.stringify(input));
-  // for (let token of encoded) {
-  //   console.log({ token, string: decode([token]) });
-  // }
-  // console.log(chunkInput(input));
 })();
-
-async function translateOld(input) {
-  if (!configuration.apiKey) {
-    console.log(
-      "OpenAI API key not configured, please follow instructions in README.md"
-    );
-    return;
-  }
-
-  if (!input) {
-    console.log("Input translations not received.");
-    return;
-  }
-
-  const keys = Array.isArray(input) ? input : Object.keys(input);
-
-  const chunks = chunkKeys(keys);
-  // console.log("chunks", chunks);
-  const result = [];
-  for (const chunk of chunks) {
-    const translation = await queryTranslation(chunk);
-    result.push(JSON.parse(translation));
-  }
-  return buildOutput(keys, result.flat(1));
-}
-
-const generatePrompt = (language, chunk) => {
-  return [
-    {
-      role: "user",
-      content: `Please return this array with the values translated into ${language}. ${JSON.stringify(
-        chunk
-      )}`,
-    },
-  ];
-};
-
-const buildOutput = (originalArray, resultArray) => {
-  const builtObject = {};
-  originalArray.forEach((key, index) => {
-    builtObject[key] = resultArray[index];
-  });
-
-  return builtObject;
-};
-
-const queryTranslation = async (chunk) => {
-  try {
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo-0301",
-      // prompt: generatePrompt("japanese", input),
-      messages: generatePrompt("japanese", chunk),
-      temperature: 0.0,
-    });
-    console.log(completion.data.choices[0]);
-    return completion.data.choices[0].message.content;
-  } catch (error) {
-    if (error.response) {
-      console.error(error.response.status, error.response.data);
-    } else {
-      console.error(`Error with OpenAI API request: ${error.message}`);
-    }
-  }
-};
-
-const chunkKeys = (keys) => {
-  const tokensPerChunk = 1000;
-  let chunks = [];
-  let currentChunk = [];
-  let currentChunkTokenCount = 0;
-
-  for (let key of keys) {
-    currentChunkTokenCount += getTokenCount(key);
-
-    if (currentChunkTokenCount >= tokensPerChunk) {
-      chunks.push(currentChunk);
-      currentChunk = [key];
-      currentChunkTokenCount = 0;
-    }
-
-    if (currentChunkTokenCount < tokensPerChunk) {
-      currentChunk.push(key);
-    }
-  }
-
-  if (currentChunk) chunks.push(currentChunk);
-
-  // console.log("chunkies", chunks);
-
-  return chunks;
-};
 
 module.exports = {
   translate: translate,
 };
-
-(async () => {
-  // const result = await translate(input);
-  // console.log("result", result);
-  // console.log(result);
-  // const encoded = encode(JSON.stringify(input));
-  // for (let token of encoded) {
-  //   console.log({ token, string: decode([token]) });
-  // }
-  // console.log(chunkInput(input));
-})();
