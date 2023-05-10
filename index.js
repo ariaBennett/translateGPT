@@ -33,9 +33,9 @@ async function translate(input) {
   const result = [];
   for (const chunk of chunks) {
     const translation = await queryTranslation(chunk);
-    result.push(translation);
+    result.push(JSON.parse(translation));
   }
-  return result;
+  return buildOutput(keys, result.flat(1));
 }
 
 const generatePrompt = (language, chunk) => {
@@ -47,6 +47,15 @@ const generatePrompt = (language, chunk) => {
       )}`,
     },
   ];
+};
+
+const buildOutput = (originalArray, resultArray) => {
+  const builtObject = {};
+  originalArray.forEach((key, index) => {
+    builtObject[key] = resultArray[index];
+  });
+
+  return builtObject;
 };
 
 const queryTranslation = async (chunk) => {
