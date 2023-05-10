@@ -93,7 +93,7 @@ async function translate(input) {
     return [
       {
         role: "user",
-        content: `Please return this JSON object with the values translated into ${language}. ${query}`,
+        content: `Please return this JSON object with the values translated into ${language}. ${query} JSON ONLY. NO DISCUSSION.`,
       },
     ];
   };
