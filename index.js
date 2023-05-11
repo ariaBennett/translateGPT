@@ -1,7 +1,7 @@
 // TODO
 // return languages correctly
 // accept a list of languages
-// Keep list of completed chunks and incomplete and retry queries until all complete.
+// TODO Tokens are 2x as needed because we're not filling in the vlaues thi way, determine if we should?'
 
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
@@ -60,7 +60,7 @@ async function translate(input) {
   };
 
   const buildQueries = (formattedInput) => {
-    const tokenLimit = 1000;
+    const tokenLimit = 100;
     const queries = [];
     let buildingTokens = 0;
     let buildingQuery = {};
@@ -93,7 +93,7 @@ async function translate(input) {
     return [
       {
         role: "user",
-        content: `Please return this JSON object with the values translated into ${language}. ${query} JSON ONLY. NO DISCUSSION.`,
+        content: `Please return this JSON object with the values filled in with the translation of their keys into ${language}. ${query} JSON ONLY. NO DISCUSSION.`,
       },
     ];
   };
@@ -103,7 +103,7 @@ async function translate(input) {
       const completion = await openai.createChatCompletion({
         model: "gpt-3.5-turbo-0301",
         messages: generatePrompt(query, language),
-        temperature: 0.0,
+        temperature: 0.6,
       });
       console.log("Query response: ", completion.data.choices[0]);
       return completion.data.choices[0].message.content;
@@ -145,7 +145,7 @@ async function translate(input) {
     console.log("Queries", queries);
 
     for (let query in queries) {
-      const queryResponse = await sendQuery(queries[query], "uwu speak"); // Todo pass language
+      const queryResponse = await sendQuery(queries[query], "japanese"); // Todo pass language
       console.log("Query response: ", queryResponse);
 
       buildingOutput = generateAppliedResponse(queryResponse, buildingOutput);
