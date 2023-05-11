@@ -60,7 +60,7 @@ async function translate(input) {
   };
 
   const buildQueries = (formattedInput) => {
-    const tokenLimit = 100;
+    const tokenLimit = 1000;
     const queries = [];
     let buildingTokens = 0;
     let buildingQuery = {};
@@ -78,7 +78,7 @@ async function translate(input) {
 
       if (formattedInput[key] === "") {
         buildingQuery[key] = "";
-        buildingTokens += getTokenCount(key) * 2 + 4;
+        buildingTokens += getTokenCount(key) * 2 + 4; // TODO fix this
       }
     });
 
@@ -93,7 +93,7 @@ async function translate(input) {
     return [
       {
         role: "user",
-        content: `Please return this JSON object with the values filled in with the translation of their keys into ${language}. ${query} JSON ONLY. NO DISCUSSION.`,
+        content: `Please return this JSON object with the values translated into ${language} but do not alter the keys. JSON ONLY. NO DISCUSSION:  ${query} `,
       },
     ];
   };
@@ -121,7 +121,11 @@ async function translate(input) {
     let parsedResponse;
 
     try {
-      parsedResponse = JSON.parse(response);
+      let lastIndex = response.lastIndexOf("}"); // Attempt to remove non json fluff.
+      let firstIndex = response.lastIndexOf("{", lastIndex);
+      parsedResponse = response.slice(firstIndex, lastIndex + 1);
+
+      parsedResponse = JSON.parse(parsedResponse);
       console.log("Parsed response: ", parsedResponse);
     } catch {
       console.log(`Response parse error, retrying. Response: ${response}`);
@@ -152,7 +156,8 @@ async function translate(input) {
       console.log("Building output", buildingOutput);
     }
 
-    if (queries === ["{}"]) {
+    if (queries.length === 1 && queries[0] === ["{}"]) {
+      console.log(`Finished queries`);
       isOutputBuilt = true;
     }
   }
