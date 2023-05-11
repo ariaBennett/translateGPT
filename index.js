@@ -27,7 +27,7 @@ const isArray = function (a) {
 
 // While loop on object that builds queries out of blank values
 //   and token based splits them
-async function translate(input) {
+async function translate(input, language) {
   if (!configuration.apiKey) {
     console.log(
       "OpenAI API key not configured, please follow instructions in README.md"
@@ -150,7 +150,7 @@ async function translate(input) {
     console.log("Queries", queries);
 
     for (let query in queries) {
-      const queryResponse = await sendQuery(queries[query], "dutch"); // Todo pass language
+      const queryResponse = await sendQuery(queries[query], language); // Todo pass language
       console.log("Query response: ", queryResponse);
 
       buildingOutput = generateAppliedResponse(queryResponse, buildingOutput);
@@ -168,18 +168,25 @@ async function translate(input) {
 }
 // Try function on result from api to place the values into source json
 // once while loop completes, return filled JSON
+const languages = ["informal dutch", "spanish", "norwegian"];
 
-(async () => {
-  const result = await translate(input);
+languages.forEach((language) => {
+  (async () => {
+    const result = await translate(input, language);
 
-  fs.writeFile("./output.json", JSON.stringify(result), (err) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    console.log("file written successfully");
-  });
-})();
+    fs.writeFile(
+      `./output.${language.replace(/\s/g, "_")}.json`,
+      JSON.stringify(result),
+      (err) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        console.log("file written successfully");
+      }
+    );
+  })();
+});
 
 module.exports = {
   translate: translate,
