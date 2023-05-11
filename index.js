@@ -7,6 +7,7 @@ require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
 const input = require("./test_translations.json");
 const { encode } = require("gpt-3-encoder");
+const fs = require("fs");
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -93,7 +94,7 @@ async function translate(input) {
     return [
       {
         role: "user",
-        content: `Please return this JSON object with the values translated into ${language} but do not alter the keys. JSON ONLY. NO DISCUSSION:  ${query} `,
+        content: `Please return this JSON object with the empty value strings filled in with the translation of the keys into ${language} JSON ONLY. NO DISCUSSION. DON'T ALTER THE KEYS. ALWAYS FILL IN THE EMPTY STRINGS WITH A TRANSLATION:  ${query} `,
       },
     ];
   };
@@ -103,7 +104,7 @@ async function translate(input) {
       const completion = await openai.createChatCompletion({
         model: "gpt-3.5-turbo-0301",
         messages: generatePrompt(query, language),
-        temperature: 0.6,
+        temperature: 1.0,
       });
       console.log("Query response: ", completion.data.choices[0]);
       return completion.data.choices[0].message.content;
@@ -149,7 +150,7 @@ async function translate(input) {
     console.log("Queries", queries);
 
     for (let query in queries) {
-      const queryResponse = await sendQuery(queries[query], "japanese"); // Todo pass language
+      const queryResponse = await sendQuery(queries[query], "dutch"); // Todo pass language
       console.log("Query response: ", queryResponse);
 
       buildingOutput = generateAppliedResponse(queryResponse, buildingOutput);
@@ -170,6 +171,14 @@ async function translate(input) {
 
 (async () => {
   const result = await translate(input);
+
+  fs.writeFile("./output.json", JSON.stringify(result), (err) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    console.log("file written successfully");
+  });
 })();
 
 module.exports = {
