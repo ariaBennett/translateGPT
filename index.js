@@ -156,7 +156,7 @@ async function translate(input) {
       console.log("Building output", buildingOutput);
     }
 
-    if (queries.length === 1 && queries[0] === ["{}"]) {
+    if (JSON.stringify(queries) === `["{}"]`) {
       console.log(`Finished queries`);
       isOutputBuilt = true;
     }
